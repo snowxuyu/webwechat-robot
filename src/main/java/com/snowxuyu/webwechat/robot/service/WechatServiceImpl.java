@@ -47,6 +47,7 @@ public class WechatServiceImpl implements WechatService {
     @Override
     public String getUUid() throws BaseException {
         String result = "";
+        wxEntity = new WxEntity();
         Map<String, String> map = new HashMap<>();
         map.put("appid", "wx782c26e4c19acffb");
         map.put("redirect_uri", "https://wx.qq.com/cgi-bin/mmwebwx-bin/webwxnewloginpage");
@@ -63,7 +64,7 @@ public class WechatServiceImpl implements WechatService {
             logger.debug("获取uuid接口返回空");
             return null;
         }
-        wxEntity = new WxEntity();
+
         String code = MatcherUtils.matcher(result, "window.QRLogin.code = (\\d+);");
         if (!StringUtils.isEmpty(code) && Constant.System.OK_CODE.equals(code)) {
             String uuid = MatcherUtils.matcher(result, "window.QRLogin.uuid = \"(.*)\"");
