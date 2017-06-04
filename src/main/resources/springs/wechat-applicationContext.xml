@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns="http://www.springframework.org/schema/beans"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd">
+
+    <!--开启注解-->
+    <context:annotation-config/>
+    <!-- 启动包扫描功能，以便注册带有@Controller、@Service、@repository、@Component等注解的类成为spring的bean -->
+    <context:component-scan base-package="com.snowxuyu.webwechat.robot">
+        <!-- 在spring配置文件中去除@Controller注解 -->
+        <context:exclude-filter type="annotation" expression="org.springframework.stereotype.Controller"/>
+    </context:component-scan>
+
+    <bean class="org.framework.basic.system.PropertyPlaceholderConfigurer">
+          <property name="ignoreUnresolvablePlaceholders" value="true" />
+          <property name="locations">
+                 <list>
+                      <value>classpath:configs/conf.properties</value>
+                 </list>
+          </property>
+    </bean>
+
+    <!--引入框架配置-->
+    <import resource="classpath*:/spring/applicationContext-framework.xml"/>
+
+</beans>
