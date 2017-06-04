@@ -34,5 +34,7 @@ public class WxEntity implements Serializable {
 
     private JSONArray chatSet;
 
+    private JSONArray contactList; //初始化时获取的联系人列表
+
     private JSONArray memberList; //微信联系人
 }

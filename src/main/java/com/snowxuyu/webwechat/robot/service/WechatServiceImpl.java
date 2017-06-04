@@ -188,6 +188,8 @@ public class WechatServiceImpl implements WechatService {
             String user = JSONObject.parseObject(result).getString("User");
             String syncKey = JSONObject.parseObject(result).getString("SyncKey");
             String chatSet = JSONObject.parseObject(result).getString("ChatSet");
+            JSONArray contactList = JSONObject.parseObject(result).getJSONArray("ContactList");
+
             JSONObject jsonSyncKey = JSONObject.parseObject(syncKey);
             JSONArray list = jsonSyncKey.getJSONArray("List");
             JSONArray jsonArray = new JSONArray();
@@ -216,6 +218,7 @@ public class WechatServiceImpl implements WechatService {
             wxEntity.setSyncKey(jsonSyncKey);
             wxEntity.setSyncDetailKey(builder.toString());
             wxEntity.setChatSet(jsonArray);
+            wxEntity.setContactList(contactList);
         }
     }
 
@@ -378,7 +381,8 @@ public class WechatServiceImpl implements WechatService {
             JSONObject msg = jsonMsgArr.getObject(i, JSONObject.class);
             String remarkName = getUserRemarkName(msg.getString("FromUserName"), wxEntity);
             String content = msg.getString("Content");
-
+            String toUser = "";
+            String fromAt = "";
             Integer msgType = msg.getInteger("MsgType");
 
             if (1 == msgType) {
@@ -393,8 +397,20 @@ public class WechatServiceImpl implements WechatService {
                     continue;
                 }
                 if (msg.getString("FromUserName").startsWith("@@")) {
-                    //过滤群组
-                    continue;
+                    if (content.startsWith("@") && msg.getString("ToUserName").equals(entity.getUser().getString("UserName"))) {
+                        //群组中@我的
+                        String[] split = content.split(":<br/>");
+                        toUser = msg.getString("FromUserName");
+                        fromAt = split[0];
+                        content = split[1];
+
+                        if (!content.contains("@" + entity.getUser().getString("NickName"))) {
+                            continue;
+                        }
+                    }
+                } else {
+                    //1V1 单独聊天
+                    toUser = msg.getString("FromUserName");
                 }
 
                 logger.debug("{}：{}", remarkName, content);
@@ -417,12 +433,12 @@ public class WechatServiceImpl implements WechatService {
                 } catch (IOException e) {
                     logger.debug("调用机器人接口异常：{}", e);
                 }
-                sengMsg(entity, robotReturnMsg, msg.getString("FromUserName"));
+                sengMsg(entity, robotReturnMsg, toUser, fromAt);
             } else if (3 == msgType) {
                 //图片消息
-                sengMsg(entity, "暂不支持图片", msg.getString("FromUserName"));
+                sengMsg(entity, "暂不支持图片", msg.getString("FromUserName"), null);
             } else  if (34 == msgType) {
-                sengMsg(entity, "暂不支持语音", msg.getString("FromUserName"));
+                sengMsg(entity, "暂不支持语音", msg.getString("FromUserName"), null);
             }
 
         }
@@ -432,7 +448,7 @@ public class WechatServiceImpl implements WechatService {
 
 
     //发送消息
-    private void sengMsg(WxEntity entity, String content, String toUser) {
+    private void sengMsg(WxEntity entity, String content, String toUser, String fromAt) {
         logger.debug("开始发送消息");
 
         logger.debug("{}: {}", entity.getUser().getString("UserName"), content);
@@ -442,7 +458,20 @@ public class WechatServiceImpl implements WechatService {
         String clientMsgId = System.currentTimeMillis() + RandomUtils.getRandomString(4);
         JSONObject msg = new JSONObject();
         msg.put("Type", 1);
-        msg.put("Content", content);
+        if (!StringUtils.isEmpty(fromAt)) {
+            String fromName = "";
+            JSONArray contactList = entity.getContactList();
+            for (int i=0; i<contactList.size(); i++) {
+                JSONObject object = contactList.getObject(i, JSONObject.class);
+                if (object.getString("UserName").equals(fromAt)) {
+                    fromName =  object.getString("NickName");
+                }
+            }
+            msg.put("Content", "@" + fromName + " " +content);
+        } else {
+            msg.put("Content", content);
+        }
+
         msg.put("FromUserName", entity.getUser().getString("UserName"));
         msg.put("ToUserName", toUser);
         msg.put("LocalID", clientMsgId);
