@@ -392,6 +392,10 @@ public class WechatServiceImpl implements WechatService {
                     //过滤掉自己
                     continue;
                 }
+                if (msg.getString("FromUserName").startsWith("@@")) {
+                    //过滤群组
+                    continue;
+                }
 
                 logger.debug("{}：{}", remarkName, content);
 
