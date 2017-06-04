@@ -399,14 +399,14 @@ public class WechatServiceImpl implements WechatService {
                 if (msg.getString("FromUserName").startsWith("@@")) {
                     if (content.startsWith("@") && msg.getString("ToUserName").equals(entity.getUser().getString("UserName"))) {
                         //群组中@我的
-                        String[] split = content.split(":<br/>");
+                        String[] contentArr = content.split(":<br/>");
                         toUser = msg.getString("FromUserName");
-                        fromAt = split[0];
-                        content = split[1];
-
-                        if (!content.contains("@" + entity.getUser().getString("NickName"))) {
+                        fromAt = contentArr[0];
+                        String temContent = contentArr[1];
+                        if (!temContent.contains("@" + entity.getUser().getString("NickName"))) {
                             continue;
                         }
+                        content = temContent.replace("@" + entity.getUser().getString("NickName"), "");
                     }
                 } else {
                     //1V1 单独聊天
