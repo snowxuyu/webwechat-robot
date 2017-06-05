@@ -361,12 +361,6 @@ public class WechatServiceImpl implements WechatService {
                             webwxSendMsg(finalWxEntity, jsonMsg);
                         }
                     }
-
-                    try {
-                        Thread.sleep(2000);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
                 }
             }
         });
