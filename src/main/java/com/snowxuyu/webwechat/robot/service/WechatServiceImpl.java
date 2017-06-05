@@ -349,6 +349,8 @@ public class WechatServiceImpl implements WechatService {
                     SynccheckResult syncCheck = syncCheck(finalWxEntity);
                     if ("1100".equals(syncCheck.getRetcode())) {
                         logger.debug("微信已退出");
+                        //微信退出 终止当前线程
+                        Thread.currentThread().interrupt();
                     } else if ("0".equals(syncCheck.getRetcode())) {
                         if ("7".equals(syncCheck.getSelector())) {
                             logger.debug("离开聊天界面");
