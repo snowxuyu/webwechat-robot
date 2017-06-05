@@ -343,14 +343,15 @@ public class WechatServiceImpl implements WechatService {
         final WxEntity finalWxEntity = wxEntity;
 
         threadPool.execute(new Runnable() {
+            boolean flag = true;
             @Override
             public void run() {
-                while (true) {
+                while (flag) {
                     SynccheckResult syncCheck = syncCheck(finalWxEntity);
-                    if ("1100".equals(syncCheck.getRetcode())) {
+                    if ("1101".equals(syncCheck.getRetcode())) {
                         logger.debug("微信已退出");
-                        //微信退出 终止当前线程
-                        Thread.currentThread().interrupt();
+                        //微信退出 线程不再循环
+                        flag = false;
                     } else if ("0".equals(syncCheck.getRetcode())) {
                         if ("7".equals(syncCheck.getSelector())) {
                             logger.debug("离开聊天界面");
@@ -438,8 +439,35 @@ public class WechatServiceImpl implements WechatService {
                 sengMsg(entity, robotReturnMsg, toUser, fromAt);
             } else if (3 == msgType) {
                 //图片消息
+                  if (msg.getString("FromUserName").startsWith("@@")) {
+                    if (content.startsWith("@") && msg.getString("ToUserName").equals(entity.getUser().getString("UserName"))) {
+                        //群组中@我的
+                        String[] contentArr = content.split(":<br/>");
+                        toUser = msg.getString("FromUserName");
+                        fromAt = contentArr[0];
+                        String temContent = contentArr[1];
+                        if (!temContent.contains("@" + entity.getUser().getString("NickName"))) {
+                            continue;
+                        }
+                        content = temContent.replace("@" + entity.getUser().getString("NickName"), "");
+                    }
+                }
                 sengMsg(entity, "暂不支持图片", msg.getString("FromUserName"), null);
             } else  if (34 == msgType) {
+                //语音消息
+                  if (msg.getString("FromUserName").startsWith("@@")) {
+                    if (content.startsWith("@") && msg.getString("ToUserName").equals(entity.getUser().getString("UserName"))) {
+                        //群组中@我的
+                        String[] contentArr = content.split(":<br/>");
+                        toUser = msg.getString("FromUserName");
+                        fromAt = contentArr[0];
+                        String temContent = contentArr[1];
+                        if (!temContent.contains("@" + entity.getUser().getString("NickName"))) {
+                            continue;
+                        }
+                        content = temContent.replace("@" + entity.getUser().getString("NickName"), "");
+                    }
+                }
                 sengMsg(entity, "暂不支持语音", msg.getString("FromUserName"), null);
             }
 
