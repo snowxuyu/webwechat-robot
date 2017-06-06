@@ -634,12 +634,13 @@ public class WechatServiceImpl implements WechatService {
             result = HttpClientUtils.doGet(url, params);
         } catch (IOException e) {
             logger.debug("调用微信消息检查接口出错");
+            syncCheck(entity);
 
-            //接口挂了 终止当前线程 继续开启新的线程
+            /*//接口挂了 终止当前线程 继续开启新的线程
             Thread.currentThread().interrupt();
             while (Thread.interrupted()) {
                 syncListener();
-            }
+            }*/
         }
 
         //logger.debug("调用微信消息检查接口返回结果:{}", result);
