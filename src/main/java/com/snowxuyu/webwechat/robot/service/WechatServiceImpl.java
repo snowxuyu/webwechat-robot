@@ -12,7 +12,6 @@ import com.snowxuyu.webwechat.robot.domain.SynccheckResult;
 import com.snowxuyu.webwechat.robot.domain.WebwxSyncRequest;
 import com.snowxuyu.webwechat.robot.domain.WxEntity;
 import com.snowxuyu.webwechat.robot.utils.MatcherUtils;
-import org.framework.basic.system.PropertyPlaceholderConfigurer;
 import org.framework.common.crypto.Tools;
 import org.framework.common.util.HttpClientUtils;
 import org.framework.common.util.RandomUtils;
@@ -40,6 +39,9 @@ public class WechatServiceImpl implements WechatService {
 
     @Resource
     private ThreadPoolTaskExecutor threadPool;
+
+    @Resource
+    private RobotService robotService;
 
 
     private WxEntity wxEntity;
@@ -344,6 +346,7 @@ public class WechatServiceImpl implements WechatService {
 
         threadPool.execute(new Runnable() {
             boolean flag = true;
+
             @Override
             public void run() {
                 while (flag) {
@@ -375,12 +378,15 @@ public class WechatServiceImpl implements WechatService {
         JSONArray jsonMsgArr = jsonMsg.getJSONArray("AddMsgList");
 
         for (int i = 0; i < jsonMsgArr.size(); i++) {
+            String toUser = "";
+            String fromAt = "";
+            String robotReturnMsg = "";
             JSONObject msg = jsonMsgArr.getObject(i, JSONObject.class);
             String remarkName = getUserRemarkName(msg.getString("FromUserName"), wxEntity);
             String content = msg.getString("Content");
-            String toUser = "";
-            String fromAt = "";
             Integer msgType = msg.getInteger("MsgType");
+
+            logger.debug("{}：{}", remarkName, content);
 
             if (1 == msgType) {
                 //文字消息
@@ -410,64 +416,41 @@ public class WechatServiceImpl implements WechatService {
                     toUser = msg.getString("FromUserName");
                 }
 
-                logger.debug("{}：{}", remarkName, content);
-
                 //调用机器人
-                String robotReturnMsg = "";
-                String apiKey = (String)PropertyPlaceholderConfigurer.getContextProperty("api_key");
-                String apiSecret = (String) PropertyPlaceholderConfigurer.getContextProperty("api_secret");
-
-                if (StringUtils.isEmpty(apiKey) || StringUtils.isEmpty(apiSecret)) {
-                    robotReturnMsg = "请先配置机器人";
-                }
-
-                HashMap<String, String> robotParams = new HashMap<>();
-                robotParams.put("question", content);
-                robotParams.put("api_key", apiKey);
-                robotParams.put("api_secret", apiSecret);
-                try {
-                    robotReturnMsg = HttpClientUtils.doGet(Constant.WECHAT_URL_CONFIG.CLAA_ROBOT, robotParams);
-                } catch (IOException e) {
-                    logger.debug("调用机器人接口异常：{}", e);
-                }
+                robotReturnMsg = robotService.talk(content);
                 sengMsg(entity, robotReturnMsg, toUser, fromAt);
+
             } else if (3 == msgType) {
                 //图片消息
-                  if (msg.getString("FromUserName").startsWith("@@")) {
+                if (msg.getString("FromUserName").startsWith("@@")) {
                     if (content.startsWith("@") && msg.getString("ToUserName").equals(entity.getUser().getString("UserName"))) {
                         //群组中@我的
                         String[] contentArr = content.split(":<br/>");
-                        toUser = msg.getString("FromUserName");
                         fromAt = contentArr[0];
                         String temContent = contentArr[1];
                         if (!temContent.contains("@" + entity.getUser().getString("NickName"))) {
                             continue;
                         }
-                        content = temContent.replace("@" + entity.getUser().getString("NickName"), "");
                     }
                 }
-                sengMsg(entity, "暂不支持图片", msg.getString("FromUserName"), null);
-            } else  if (34 == msgType) {
+                sengMsg(entity, "暂不支持图片", msg.getString("FromUserName"), fromAt);
+            } else if (34 == msgType) {
                 //语音消息
-                  if (msg.getString("FromUserName").startsWith("@@")) {
+                if (msg.getString("FromUserName").startsWith("@@")) {
                     if (content.startsWith("@") && msg.getString("ToUserName").equals(entity.getUser().getString("UserName"))) {
                         //群组中@我的
                         String[] contentArr = content.split(":<br/>");
-                        toUser = msg.getString("FromUserName");
-                        fromAt = contentArr[0];
                         String temContent = contentArr[1];
+                        fromAt = contentArr[0];
                         if (!temContent.contains("@" + entity.getUser().getString("NickName"))) {
                             continue;
                         }
-                        content = temContent.replace("@" + entity.getUser().getString("NickName"), "");
                     }
                 }
-                sengMsg(entity, "暂不支持语音", msg.getString("FromUserName"), null);
+                sengMsg(entity, "暂不支持语音", msg.getString("FromUserName"), fromAt);
             }
 
         }
-
-
     }
 
 
@@ -485,13 +468,13 @@ public class WechatServiceImpl implements WechatService {
         if (!StringUtils.isEmpty(fromAt)) {
             String fromName = "";
             JSONArray contactList = entity.getContactList();
-            for (int i=0; i<contactList.size(); i++) {
+            for (int i = 0; i < contactList.size(); i++) {
                 JSONObject object = contactList.getObject(i, JSONObject.class);
                 if (object.getString("UserName").equals(fromAt)) {
-                    fromName =  object.getString("NickName");
+                    fromName = object.getString("NickName");
                 }
             }
-            msg.put("Content", "@" + fromName + " " +content);
+            msg.put("Content", "@" + fromName + " " + content);
         } else {
             msg.put("Content", content);
         }
