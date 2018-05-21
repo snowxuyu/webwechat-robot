@@ -14,7 +14,7 @@
     $(function(){
        $.ajax({
           type : "GET",
-           url : "/wxLogin",
+           url : "<%=request.getContextPath()%>/wxLogin",
            data : {}
        });
     });
